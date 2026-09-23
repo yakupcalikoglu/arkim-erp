@@ -1553,9 +1553,12 @@ function inSpec(prod,key,val){
   return true;
 }
 function fmtAvg(lots,key,dec){
-  var vals=lots.map(function(l){return l[key];}).filter(function(x){return x!=null&&!isNaN(x);});
+  /* Sadece içinde mal olan (kg>0) lotların değerlerini ortala */
+  var activeLots=lots.filter(function(l){return (l.kg||0)>0;});
+  var vals=activeLots.map(function(l){return l[key];}).filter(function(x){return x!=null&&x!==''&&!isNaN(parseFloat(x));});
   if(!vals.length)return '—';
-  return (vals.reduce(function(a,b){return a+b;})/vals.length).toFixed(dec);
+  var avg=vals.reduce(function(a,b){return a+parseFloat(b);},0)/vals.length;
+  return avg.toFixed(dec);
 }
 
 /* ── AUTH ─────────────────────────────────────────────────────────────── */
@@ -3130,7 +3133,7 @@ var LS_KEY='arkim_data_v3';
 /* ════════════════════════════════════════════════════════
    SUPABASE YAPILANDIRMASI — Buraya kendi bilgilerinizi girin
    ════════════════════════════════════════════════════════ */
-var var SUPA_URL   = 'https://ybphkaezzsrdvnsqvyat.supabase.co';
+var SUPA_URL   = 'https://ybphkaezzsrdvnsqvyat.supabase.co';
 var SUPA_ANON  = sb_publishable_hzpK2j8acMxJGrHxCkDL_Q_6q2eapq0 //
 var VERCEL_API = '';arkim-erp.vercel.app
 /* ════════════════════════════════════════════════════════ */
