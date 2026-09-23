@@ -239,8 +239,7 @@ hr.dv{border:none;border-top:0.5px solid var(--bdr);margin:9px 0}
   .btn-row{gap:4px}
   .btn{padding:6px 8px;font-size:11px}
 }
-</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-</head><body>
+</style></head><body>
 
 <div id="login-sc">
   <div class="login-box">
@@ -3127,6 +3126,14 @@ function expRpXls(){
 
 /* ── LOCAL STORAGE ───────────────────────────────────────────────────────── */
 var LS_KEY='arkim_data_v3';
+
+/* ════════════════════════════════════════════════════════
+   SUPABASE YAPILANDIRMASI — Buraya kendi bilgilerinizi girin
+   ════════════════════════════════════════════════════════ */
+var SUPA_URL   = 'https://ybphkaezzsrdvnsqvyat.supabase.co';
+var SUPA_ANON  = sb_publishable_hzpK2j8acMxJGrHxCkDL_Q_6q2eapq0 //
+var VERCEL_API = '';
+/* ════════════════════════════════════════════════════════ */
 function saveData(){
   try{
     var DS_lots={},DS_kg={},DS_log={};
@@ -4765,94 +4772,6 @@ function renderDStats(){
     mkStat('T.O.T.M',(totm/1000).toFixed(1)+' t')+
     mkStat('T.O.T.M-AO',(tao/1000).toFixed(1)+' t')+
     mkStat('Aktif Lot',lots);
-}
-
-
-/* ── SUPABASE YAPILANDIRMASI ─────────────────────────────────── */
-/* Bu değerleri Supabase Dashboard > Settings > API'dan alın */
-var SUPA_URL  = ''; /* Örn: https://xxxx.supabase.co */
-var SUPA_ANON = ''; /* anon/public key */
-var VERCEL_API = ''; /* Örn: https://arkim-erp.vercel.app/api/data */
-/* ──────────────────────────────────────────────────────────── */
-
-var _supaClient = null;
-var _supaChannel = null;
-var _lastSaveTs  = 0;
-var _isSaving    = false;
-
-function initSupabase(){
-  if(!SUPA_URL || !SUPA_ANON){
-    console.warn('Supabase yapılandırılmamış - yerel mod');
-    return;
-  }
-  try{
-    _supaClient = supabase.createClient(SUPA_URL, SUPA_ANON);
-    console.log('Supabase bağlandı');
-    /* Realtime: başka kullanıcı kayıt yaptığında bildir */
-    _supaChannel = _supaClient.channel('arkim-data')
-      .on('postgres_changes',
-        {event:'UPDATE', schema:'public', table:'arkim_data'},
-        function(payload){
-          /* Kendi kaydettiğimizse tepki verme */
-          if(Date.now()-_lastSaveTs < 2000)return;
-          loadFromSupabase(true);
-        })
-      .subscribe();
-    /* İlk yükleme */
-    loadFromSupabase(false);
-    /* Bağlantı göstergesi */
-    showNetStatus('Supabase bağlı', '#22c55e');
-  }catch(e){
-    console.error('Supabase init hata:', e);
-  }
-}
-
-function showNetStatus(txt, color){
-  var el=document.getElementById('net-status');
-  var tEl=document.getElementById('net-status-txt');
-  if(el){el.style.display='flex';el.style.background=color==='#22c55e'?'#f0fdf4':'#fef2f2';el.style.borderColor=color==='#22c55e'?'#bbf7d0':'#fecaca';}
-  if(tEl)tEl.textContent=txt;
-  var dot=el&&el.querySelector('span');
-  if(dot)dot.style.background=color;
-}
-
-function loadFromSupabase(notify){
-  if(!_supaClient)return;
-  _supaClient.from('arkim_data').select('data,updated_at,updated_by').eq('id',1).single()
-    .then(function(res){
-      if(res.error||!res.data||!res.data.data)return;
-      var d=res.data.data;
-      if(typeof d==='string')d=JSON.parse(d);
-      if(!d||Object.keys(d).length===0)return;
-      localStorage.setItem(LS_KEY, JSON.stringify(d));
-      applyLoadedData(d);
-      if(notify){
-        renderTanks();renderPT();renderSvT();renderHmTbl();renderDStats();
-        var who=res.data.updated_by||'Bir kullanıcı';
-        toast('🔄 '+who+' güncelledi.','#1a62b5');
-      }
-    });
-}
-
-function saveToSupabase(payload, userName){
-  if(!_supaClient&&!VERCEL_API)return;
-  _lastSaveTs=Date.now();
-  _isSaving=true;
-  var body={data:payload, user:userName||(_curUser?_curUser.username:'')};
-  /* Vercel API üzerinden kaydet (CORS sorunu olmaz) */
-  if(VERCEL_API){
-    fetch(VERCEL_API,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    }).then(function(){_isSaving=false;})
-      .catch(function(e){console.warn('Vercel API hata:',e);_isSaving=false;});
-  } else if(_supaClient){
-    /* Doğrudan Supabase'e yaz */
-    _supaClient.from('arkim_data').upsert({id:1, data:payload, updated_by:userName||''})
-      .then(function(){_isSaving=false;})
-      .catch(function(e){console.warn('Supabase kayıt hata:',e);_isSaving=false;});
-  }
 }
 
 </script>
