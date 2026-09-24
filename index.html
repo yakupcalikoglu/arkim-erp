@@ -1599,7 +1599,15 @@ function loginOK(){
   applyMobNavPerms();
   logActivity('Giriş','Sisteme giriş yaptı');
   try{sessionStorage.setItem('ark_sess',JSON.stringify({u:_curUser.username}));}catch(e){}
-  go(perms[0]||'depolar');
+  /* Supabase'den veri yükle, sonra sayfayı göster */
+  if((SUPA_URL&&SUPA_ANON)||VERCEL_API){
+    loadFromServer(function(){
+      go(perms[0]||'depolar');
+      renderTanks();renderDStats();
+    });
+  } else {
+    go(perms[0]||'depolar');
+  }
 }
 function doLogout(){if(!confirm('Çıkış yapılsın mı?'))return;logActivity('Çıkış','Sistemden çıkış yaptı');_curUser=null;try{sessionStorage.removeItem('ark_sess');}catch(e){}document.getElementById('login-sc').style.display='flex';document.getElementById('main-app').style.display='none';sv('lu','');sv('lp','');}
 function chkSess(){try{var s=sessionStorage.getItem('ark_sess');if(!s)return false;var d=JSON.parse(s);if(d.u===ADMIN.username){_curUser=ADMIN;loginOK();return true;}var f=_users.find(function(u){return u.username===d.u;});if(f){_curUser=f;loginOK();return true;}}catch(e){}return false;}
@@ -3135,7 +3143,7 @@ var LS_KEY='arkim_data_v3';
    ════════════════════════════════════════════════════════ */
 var SUPA_URL   = 'https://ybphkaezzsrdvnsqvyat.supabase.co';
 var SUPA_ANON  = sb_publishable_hzpK2j8acMxJGrHxCkDL_Q_6q2eapq0 //
-var VERCEL_API = '';arkim-erp.vercel.app
+var VERCEL_API = '';arkim-erp.vercel.app';
 /* ════════════════════════════════════════════════════════ */
 function saveData(){
   try{
@@ -4775,6 +4783,28 @@ function renderDStats(){
     mkStat('T.O.T.M',(totm/1000).toFixed(1)+' t')+
     mkStat('T.O.T.M-AO',(tao/1000).toFixed(1)+' t')+
     mkStat('Aktif Lot',lots);
+}
+
+
+/* ── VERİ YÜKLEME (login sonrası) ──────────────────────────── */
+function loadFromServer(cb){
+  var url = VERCEL_API ? VERCEL_API : (SUPA_URL+'/rest/v1/arkim_data?id=eq.1&select=data');
+  var headers = {'Content-Type':'application/json'};
+  if(!VERCEL_API && SUPA_ANON){
+    headers['apikey'] = SUPA_ANON;
+    headers['Authorization'] = 'Bearer '+SUPA_ANON;
+  }
+  fetch(url, {headers:headers})
+    .then(function(r){return r.json();})
+    .then(function(res){
+      var d = VERCEL_API ? res.data : (Array.isArray(res)?res[0].data:res.data);
+      if(d && typeof d==='object' && Object.keys(d).length>0){
+        localStorage.setItem(LS_KEY, JSON.stringify(d));
+        applyLoadedData(d);
+      }
+      if(cb)cb();
+    })
+    .catch(function(){if(cb)cb();});
 }
 
 </script>
