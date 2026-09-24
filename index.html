@@ -1610,7 +1610,43 @@ function loginOK(){
   }
 }
 function doLogout(){if(!confirm('Çıkış yapılsın mı?'))return;logActivity('Çıkış','Sistemden çıkış yaptı');_curUser=null;try{sessionStorage.removeItem('ark_sess');}catch(e){}document.getElementById('login-sc').style.display='flex';document.getElementById('main-app').style.display='none';sv('lu','');sv('lp','');}
-function chkSess(){try{var s=sessionStorage.getItem('ark_sess');if(!s)return false;var d=JSON.parse(s);if(d.u===ADMIN.username){_curUser=ADMIN;loginOK();return true;}var f=_users.find(function(u){return u.username===d.u;});if(f){_curUser=f;loginOK();return true;}}catch(e){}return false;}
+function chkSess(){
+  try{
+    var s=sessionStorage.getItem('ark_sess');
+    if(!s)return false;
+    var d=JSON.parse(s);
+    var found=null;
+    if(d.u===ADMIN.username) found=ADMIN;
+    if(!found){var bi=_BUILTIN_USERS.find(function(u){return u.username===d.u;});if(bi)found=bi;}
+    if(!found){var fi=_users.find(function(u){return u.username===d.u;});if(fi)found=fi;}
+    if(found){
+      _curUser=found;
+      /* Önce UI'ı göster */
+      document.getElementById('login-sc').style.display='none';
+      document.getElementById('main-app').style.display='flex';
+      document.getElementById('sb-user').textContent=found.name;
+      var allTabs=['depolar','uretim','sevkiyat','hammadde','araclar','musteriler','belgeler','coa-admin','raporlar','fark','takvim','kullanicilar'];
+      var perms=found.role==='admin'?allTabs:(found.perms||allTabs);
+      allTabs.filter(function(t){return t!=='kullanicilar';}).forEach(function(t){
+        var b=document.getElementById('nav-'+t);
+        if(b)b.style.display=perms.indexOf(t)>=0?'':'none';
+      });
+      applyOpPerms();applyMobNavPerms();
+      /* Supabase varsa oradan yükle, yoksa localStorage'dan devam et */
+      if((SUPA_URL&&SUPA_ANON)||VERCEL_API){
+        loadFromServer(function(){
+          renderTanks();renderPT();renderSvT();renderHmTbl();renderDStats();
+          go(perms[0]||'depolar');
+        });
+      } else {
+        renderTanks();renderPT();renderSvT();renderHmTbl();renderDStats();
+        go(perms[0]||'depolar');
+      }
+      return true;
+    }
+  }catch(e){console.warn('chkSess err',e);}
+  return false;
+}
 document.getElementById('lp').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 document.getElementById('lu').addEventListener('keydown',function(e){if(e.key==='Enter')sv('lp','')&&document.getElementById('lp').focus();});
 function canManageUsers(){return _curUser&&(_curUser.username==='yakupc'||_curUser.username==='admin'||_curUser.role==='admin');}
@@ -1758,7 +1794,7 @@ function chkTds(){
 }
 
 /* ── TANKS ─────────────────────────────────────────────────────────────── */
-function pct(st){return st.cap>0?st.kg/st.cap:0;}
+function pct(st){if(!st||!st.cap||st.cap<=0)return 0;return (st.kg||0)/st.cap;}
 function pbarColor(p){return p>=0.85?'#f44336':p>=0.55?'#ff9800':'#4caf50';}
 function tcClass(p){return p>=0.85?' full':p>=0.55?' hi':p<=0?' empty':'';}
 
@@ -1792,8 +1828,12 @@ function renderTanks(){
       if(!defs.length)return;
       html+='<div class="ts-lbl">'+lbl+'</div><div class="tg">';
       defs.forEach(function(dd){
+        if(!DS[dd.id]){/* DS henüz hazır değil - initDS çalıştır */
+          var cap=Math.round(dd.vol*dd.d*1000);
+          DS[dd.id]={name:dd.name,prod:'',vol:dd.vol,d:dd.d,cap:cap,log:[],lots:[],kg:0};
+        }
         var st=DS[dd.id],p=pct(st);
-        var hmStr=st.lots.reduce(function(acc,l){if(l.hm&&l.hm.length)l.hm.forEach(function(h){if(h.mat&&acc.indexOf(h.mat)<0)acc.push(h.mat);});return acc;},[]).join(', ');
+        var hmStr=(st.lots||[]).reduce(function(acc,l){if(l.hm&&l.hm.length)l.hm.forEach(function(h){if(h.mat&&acc.indexOf(h.mat)<0)acc.push(h.mat);});return acc;},[]).join(', ');
         html+='<div class="tc'+tcClass(p)+(_ldDid===dd.id?' sel':'')+'" onclick="showLog(\''+dd.id+'\')">';
         html+='<div class="tn">'+dd.name+'</div>';
         html+='<div class="tton'+(p<=0?' e':'')+'">'+(st.kg/1000).toFixed(2)+' TON</div>';
@@ -3299,8 +3339,10 @@ if('serviceWorker' in navigator){
   var ypfx=document.getElementById('sv-waybill-prefix');
   if(ypfx)ypfx.textContent='AIK'+new Date().getFullYear()+'00000';
 
-  // Check saved session
-  if(!chkSess()){document.getElementById('login-sc').style.display='flex';}
+  // Check saved session - oturum varsa depolar yüklendikten sonra göster
+  if(!chkSess()){
+    document.getElementById('login-sc').style.display='flex';
+  }
 })();
 
 /* ── NUMUNE ETİKETİ ─────────────────────────────────────────────────────── */
