@@ -2111,17 +2111,20 @@ function saveProd(){
     toast('✓ '+lot+' kaydedildi!','#16a34a');
     logActivity('Üretim Ekle',prod+' '+lot+' ('+kg+' KG) → '+DS[did].name);
   }
-  /* Önce kaydet */
+  /* Kaydet ve anlık göster */
+  productions.push ? null : null; /* ensure array */
   saveData();
-  /* Sonra UI güncelle - sıra önemli */
-  cancelUretEdit();
   renderPT();
   renderTanks();
-  updUDepo();
   renderDStats();
-  /* Tablonun en üstüne scroll et */
-  var tbl=document.getElementById('prod-tbl');
-  if(tbl&&tbl.parentElement)tbl.parentElement.scrollIntoView({behavior:'smooth',block:'nearest'});
+  updUDepo();
+  cancelUretEdit();
+  toast('✓ Kaydedildi! Üretim listesine eklendi.','#16a34a');
+  /* Üretim kayıtları tablosuna scroll et */
+  setTimeout(function(){
+    var tbl=document.querySelector('.tbl table tbody');
+    if(tbl&&tbl.firstChild)tbl.firstChild.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },100);
 }
 
 /* Ters MMAP: display name → key */
@@ -2196,6 +2199,7 @@ function renderPT(){
       '<td>'+fv(r.falc,3)+'</td><td>'+fv(r.water,3)+'</td>'+
       '<td style="font-size:10.5px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+hmS+'">'+hmS+'</td>'+
       '<td>'+(r.op||'—')+'</td>'+
+      '<td style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.note||'')+'">'+((r.note&&r.note.length>12)?r.note.substring(0,12)+'…':(r.note||'—'))+'</td>'+
       +(hasOp('uretim_edit')?'<td><button class="btn bsm b-amber" onclick="editProd('+ri+')">✎</button></td>':'<td></td>')+'\n'+(hasOp('uretim_edit')?'<td><button class="btn bsm b-red" onclick="delProd('+ri+')">✕</button></td>':'<td></td>')+
       '</tr>';
   }).join('');
