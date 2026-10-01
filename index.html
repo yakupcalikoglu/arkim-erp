@@ -153,6 +153,14 @@ hr.dv{border:none;border-top:0.5px solid var(--bdr);margin:9px 0}
 #login-sc{position:fixed;inset:0;background:linear-gradient(135deg,#192c44 0%,#2a5298 100%);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
 .login-box{background:#fff;border-radius:16px;padding:26px 28px;width:min(360px,95vw);box-shadow:0 20px 60px rgba(0,0,0,.3)}
 
+/* Toast bildirimi */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#16a34a;color:#fff;padding:11px 24px;border-radius:10px;
+  font-size:14px;font-weight:700;opacity:0;pointer-events:none;z-index:9999;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);min-width:200px;text-align:center;
+  transition:opacity .3s,transform .3s}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
 /* ── MOBİL ── */
 .hbg{display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:7px;color:var(--navy)}
 .hbg:hover{background:#f0f0ee}
@@ -1183,6 +1191,9 @@ hr.dv{border:none;border-top:0.5px solid var(--bdr);margin:9px 0}
   </div>
 </div>
 
+<!-- Toast bildirimi -->
+<div id="toast" class="toast"></div>
+
 <!-- Müşteri Modal -->
 <div class="mov" id="mc-modal">
   <div class="modal">
@@ -1540,7 +1551,7 @@ var _ldDid=null;
 function v(id){var e=document.getElementById(id);return e?e.value:'';}
 function sv(id,val){var e=document.getElementById(id);if(e)e.value=(val==null?'':val);}
 function fv(x,d){return(x!=null&&x!==''&&!isNaN(parseFloat(x)))?parseFloat(x).toFixed(d):'—';}
-function toast(msg,c){var t=document.getElementById('toast');t.textContent=msg;t.style.background=c||'#1a62b5';t.classList.add('on');setTimeout(function(){t.classList.remove('on');},3200);}
+function toast(msg,c){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.style.background=c||'#16a34a';t.classList.add('on');setTimeout(function(){if(t)t.classList.remove('on');},3200);}
 function openM(id){document.getElementById(id).classList.add('open');}
 function closeM(id){document.getElementById(id).classList.remove('open');if(id==='coa-modal')document.getElementById('coa-preview-wrap').innerHTML='';}
 function escX(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
